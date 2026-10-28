@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 sealed class UsbDeviceEvent {
     object CreateFailed : UsbDeviceEvent()
     object LoadFailed : UsbDeviceEvent()
+    object PortalFull : UsbDeviceEvent()
 }
 
 class EmulatedUSBDevicesViewModel : ViewModel() {
@@ -68,6 +69,15 @@ class EmulatedUSBDevicesViewModel : ViewModel() {
     val installedSkylanderFigures =
         RefreshableStateFlow(NativeEmulatedUSBDevices::getInstalledSkylanderFigures)
 
+    val installedSkylanderFiguresByKey = RefreshableStateFlow {
+        findInstalledSkylanderFigures(installedSkylanderFigures.state.value)
+    }
+
+    private fun refreshInstalledSkylanderFigures() {
+        installedSkylanderFigures.refresh()
+        installedSkylanderFiguresByKey.refresh()
+    }
+
     val installedDimensionMiniFigures =
         RefreshableStateFlow(NativeEmulatedUSBDevices::getInstalledDimensionsMiniFigures)
 
@@ -82,7 +92,7 @@ class EmulatedUSBDevicesViewModel : ViewModel() {
     }
 
     fun deleteInstalledSkylanderFigure(installedFigure: NativeEmulatedUSBDevices.InstalledFigure) =
-        deleteFigure(installedFigure, installedSkylanderFigures::refresh)
+        deleteFigure(installedFigure, ::refreshInstalledSkylanderFigures)
 
     fun deleteInstalledDimensionsFigure(installedFigure: NativeEmulatedUSBDevices.InstalledFigure) =
         deleteFigure(installedFigure, installedDimensionMiniFigures::refresh)
@@ -95,7 +105,51 @@ class EmulatedUSBDevicesViewModel : ViewModel() {
             emitEvent(UsbDeviceEvent.CreateFailed)
             return
         }
-        installedSkylanderFigures.refresh()
+        refreshInstalledSkylanderFigures()
+    }
+
+    /**
+     * Removes the figure from the portal if it is on it, otherwise places it in the first free slot.
+     * The figure file is reused when one already exists for the same (id, variant) so that the
+     * progress is kept, a new one is only created the first time.
+     */
+    fun toggleSkylanderFigure(figure: NativeEmulatedUSBDevices.SkylanderFigure) {
+        val slots = skylanderSlots.state.value
+
+        // Slot names come from SkylanderUSB::FindSkylander, which uses the same list as getSkylanderFigures
+        val loadedSlot = slots.indexOf(figure.name)
+        if (loadedSlot != -1) {
+            clearSkylandersFigure(loadedSlot)
+            return
+        }
+
+        val freeSlot = slots.indexOf(null)
+        if (freeSlot == -1) {
+            emitEvent(UsbDeviceEvent.PortalFull)
+            return
+        }
+
+        val installedFigure = installedSkylanderFiguresByKey.state.value[figure.key]
+            ?: createSkylanderFigureFile(figure)
+            ?: return
+
+        loadSkylanderFigure(installedFigure, freeSlot)
+    }
+
+    private fun createSkylanderFigureFile(
+        figure: NativeEmulatedUSBDevices.SkylanderFigure,
+    ): NativeEmulatedUSBDevices.InstalledFigure? {
+        if (!NativeEmulatedUSBDevices.createSkylanderFigure(figure.id.toInt(), figure.variant.toInt())) {
+            emitEvent(UsbDeviceEvent.CreateFailed)
+            return null
+        }
+        refreshInstalledSkylanderFigures()
+
+        val installedFigure = installedSkylanderFiguresByKey.state.value[figure.key]
+        if (installedFigure == null) {
+            emitEvent(UsbDeviceEvent.CreateFailed)
+        }
+        return installedFigure
     }
 
     fun createDimensionsMiniFigure(number: Long) {
