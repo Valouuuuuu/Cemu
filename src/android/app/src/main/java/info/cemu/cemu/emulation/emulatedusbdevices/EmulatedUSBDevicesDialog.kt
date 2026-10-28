@@ -51,11 +51,13 @@ fun EmulatedUSBDevicesDialog(
     }
     var selectedDestination by rememberSaveable { mutableStateOf(enabledDestinations.firstOrNull()) }
     var lastFailedEvent by remember { mutableStateOf<UsbDeviceEvent?>(null) }
+    var showAdvancedSkylandersPortal by rememberSaveable { mutableStateOf(false) }
 
     val dimensionSlots by viewModel.dimensionsSlots.state.collectAsState()
     val skylanderSlots by viewModel.skylanderSlots.state.collectAsState()
     val infinitySlots by viewModel.infinitySlots.state.collectAsState()
     val installedSkylanderFigures by viewModel.installedSkylanderFigures.state.collectAsState()
+    val installedSkylanderFiguresByKey by viewModel.installedSkylanderFiguresByKey.state.collectAsState()
     val installedDimensionMiniFigures by viewModel.installedDimensionMiniFigures.state.collectAsState()
     val installedInfinityFigures by viewModel.installedInfinityFigures.state.collectAsState()
 
@@ -97,35 +99,52 @@ fun EmulatedUSBDevicesDialog(
                     return@Column
                 }
 
-                PrimaryTabRow(selectedTabIndex = enabledDestinations.indexOf(selectedDestination)) {
-                    enabledDestinations.forEach { destination ->
-                        Tab(
-                            selected = destination == selectedDestination,
-                            onClick = { selectedDestination = destination },
-                            text = {
-                                Text(
-                                    text = when (destination) {
-                                        EmulatedUSBDestination.SKYLANDERS_PORTAL -> tr("Skylanders Portal")
-                                        EmulatedUSBDestination.INFINITY_BASE -> tr("Infinity Base")
-                                        EmulatedUSBDestination.DIMENSIONS_TOYPAD -> tr("Dimensions Toypad")
-                                    },
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            })
+                // Leave the screen space to the device when it is the only one enabled
+                if (enabledDestinations.size > 1) {
+                    PrimaryTabRow(selectedTabIndex = enabledDestinations.indexOf(selectedDestination)) {
+                        enabledDestinations.forEach { destination ->
+                            Tab(
+                                selected = destination == selectedDestination,
+                                onClick = { selectedDestination = destination },
+                                text = {
+                                    Text(
+                                        text = when (destination) {
+                                            EmulatedUSBDestination.SKYLANDERS_PORTAL -> tr("Skylanders Portal")
+                                            EmulatedUSBDestination.INFINITY_BASE -> tr("Infinity Base")
+                                            EmulatedUSBDestination.DIMENSIONS_TOYPAD -> tr("Dimensions Toypad")
+                                        },
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                })
+                        }
                     }
                 }
 
                 when (selectedDestination) {
-                    EmulatedUSBDestination.SKYLANDERS_PORTAL -> SkylandersPortalTab(
-                        skylanderFigures = viewModel.skylanderFigures,
-                        onCreate = viewModel::createSkylanderFigure,
-                        skylanderSlots = skylanderSlots,
-                        installedFigures = installedSkylanderFigures,
-                        onDeleteInstalledFigure = viewModel::deleteInstalledSkylanderFigure,
-                        onLoadFigure = viewModel::loadSkylanderFigure,
-                        onClear = viewModel::clearSkylandersFigure,
-                    )
+                    EmulatedUSBDestination.SKYLANDERS_PORTAL -> if (showAdvancedSkylandersPortal) {
+                        TextButton(onClick = { showAdvancedSkylandersPortal = false }) {
+                            Text(tr("Back to the Skylanders list"))
+                        }
+                        SkylandersPortalTab(
+                            skylanderFigures = viewModel.skylanderFigures,
+                            onCreate = viewModel::createSkylanderFigure,
+                            skylanderSlots = skylanderSlots,
+                            installedFigures = installedSkylanderFigures,
+                            onDeleteInstalledFigure = viewModel::deleteInstalledSkylanderFigure,
+                            onLoadFigure = viewModel::loadSkylanderFigure,
+                            onClear = viewModel::clearSkylandersFigure,
+                        )
+                    } else {
+                        SkylandersPortalGridTab(
+                            skylanderFigures = viewModel.skylanderFigures,
+                            skylanderSlots = skylanderSlots,
+                            installedFigureKeys = installedSkylanderFiguresByKey.keys,
+                            onToggleFigure = viewModel::toggleSkylanderFigure,
+                            onClear = viewModel::clearSkylandersFigure,
+                            onShowAdvanced = { showAdvancedSkylandersPortal = true },
+                        )
+                    }
 
                     EmulatedUSBDestination.INFINITY_BASE -> InfinityBaseTab(
                         infinityFigures = viewModel.infinityFigures,
@@ -168,6 +187,7 @@ fun EmulatedUSBDevicesDialog(
                     when (lastFailedEvent) {
                         UsbDeviceEvent.CreateFailed -> tr("Failed to create figure")
                         UsbDeviceEvent.LoadFailed -> tr("Failed to load figure")
+                        UsbDeviceEvent.PortalFull -> tr("The portal is full, remove a Skylander first")
                         else -> ""
                     }
                 )
