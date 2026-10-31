@@ -6,6 +6,7 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.view.InputDevice
 import android.view.KeyEvent
 import androidx.core.net.toUri
 import info.cemu.cemu.common.android.context.internalFolder
@@ -77,6 +78,9 @@ class SkyportalBridgeProvider : ContentProvider() {
             "importFigure" -> importFigure(context, arg!!.toUri(), extras!!.getString("name")!!)
             "getSettings" -> getSettings()
             "setSetting" -> setSetting(arg!!, extras!!.getInt("value"))
+            "getMappings" -> getMappings(context)
+            "setMapping" -> setMapping(context, arg!!.toInt(), extras!!.getString("value")!!.toInt())
+            "resetMappings" -> resetMappings(context)
             "getSlots" -> getSlots()
             "getSavedFigures" -> getSavedFigures()
             "toggle" -> toggle(SkylanderKey(extras!!.getInt("id"), extras.getInt("variant")))
@@ -104,15 +108,42 @@ class SkyportalBridgeProvider : ContentProvider() {
             return
         }
 
+        applyDefaultMapping(controller)
+        marker.writeText(controller.descriptor)
+    }
+
+    private fun applyDefaultMapping(controller: InputDevice) {
         if (NativeInput.isControllerDisabled(0)) {
             NativeInput.setControllerType(0, NativeInput.EmulatedControllerType.VPAD)
             NativeInput.setDeviceControllerIndex(0)
         }
+        NativeInput.clearControllerMapping(0, NativeInput.VPADButton.HOME)
         for ((mappingId, buttonId) in VPAD_MAPPING) {
             NativeInput.setControllerMapping(controller.descriptor, controller.name, 0, mappingId, buttonId)
         }
         NativeInput.saveInputs()
-        marker.writeText(controller.descriptor)
+    }
+
+    private fun getMappings(context: Context): Bundle {
+        mapFirstController(context)
+        return result(true).apply {
+            NativeInput.getControllerMappings(0).forEach { (mappingId, input) -> putString(mappingId.toString(), input) }
+        }
+    }
+
+    private fun setMapping(context: Context, mappingId: Int, buttonId: Int): Bundle {
+        mapFirstController(context)
+        val controller = listGameControllers().firstOrNull() ?: return result(false, "no_controller")
+        NativeInput.setControllerMapping(controller.descriptor, controller.name, 0, mappingId, buttonId)
+        NativeInput.saveInputs()
+        return result(true)
+    }
+
+    private fun resetMappings(context: Context): Bundle {
+        mapFirstController(context)
+        val controller = listGameControllers().firstOrNull() ?: return result(false, "no_controller")
+        applyDefaultMapping(controller)
+        return result(true)
     }
 
     private fun importKeys(context: Context, uri: Uri): Bundle {
