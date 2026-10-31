@@ -25,6 +25,8 @@ import info.cemu.cemu.emulation.input.DeviceMotionHandler
 import info.cemu.cemu.emulation.input.HotkeyManager
 import info.cemu.cemu.emulation.input.InputHandler
 import info.cemu.cemu.emulation.input.NativeInputDeviceListener
+import info.cemu.cemu.skyportal.PortalChord
+import info.cemu.cemu.skyportal.SkyportalPortal
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -69,6 +71,7 @@ private class InputDelegateManager(context: Context) {
 class EmulationActivity : AppCompatActivity() {
     private lateinit var inputManager: InputDelegateManager
     private var processInputEvents = true
+    private val portalChord = PortalChord()
 
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         if (processInputEvents && InputHandler.onMotionEvent(event)) {
@@ -79,6 +82,14 @@ class EmulationActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.isFromPhysicalController() && portalChord.onKeyEvent(event) && SkyportalPortal.open(this)) {
+            for (releaseEvent in portalChord.releaseEvents(event)) {
+                HotkeyManager.onKeyEvent(releaseEvent)
+                InputHandler.onKeyEvent(releaseEvent)
+            }
+            return true
+        }
+
         HotkeyManager.onKeyEvent(event)
 
         if (processInputEvents && InputHandler.onKeyEvent(event)) {

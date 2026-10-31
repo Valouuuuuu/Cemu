@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,6 +69,7 @@ import info.cemu.cemu.emulation.inputoverlay.InputOverlaySurfaceView.InputMode.D
 import info.cemu.cemu.emulation.inputoverlay.InputOverlaySurfaceView.InputMode.EDIT_POSITION
 import info.cemu.cemu.emulation.inputoverlay.InputOverlaySurfaceView.InputMode.EDIT_SIZE
 import info.cemu.cemu.nativeinterface.NativeEmulation
+import info.cemu.cemu.skyportal.SkyportalPortal
 import kotlinx.coroutines.launch
 
 @Composable
@@ -95,6 +97,14 @@ fun EmulationScreen(
     val isInputOverlayVisible by viewModel.isInputOverlayVisible.collectAsState()
     val inputOverlaySettings by viewModel.inputOverlaySettings.collectAsState()
 
+
+    val activity = LocalActivity.current
+
+    fun showPortal() {
+        if (activity == null || !SkyportalPortal.open(activity)) {
+            showEmulatedUSBDevices = true
+        }
+    }
 
     fun closeDrawer() {
         scope.launch {
@@ -131,7 +141,7 @@ fun EmulationScreen(
             when (action) {
                 HotkeyAction.QUIT -> showQuitConfirmationDialog = true
                 HotkeyAction.TOGGLE_MENU -> toggleMenu()
-                HotkeyAction.SHOW_EMULATED_USB_DEVICES_DIALOG -> showEmulatedUSBDevices = true
+                HotkeyAction.SHOW_EMULATED_USB_DEVICES_DIALOG -> showPortal()
             }
         }
     }
@@ -169,7 +179,7 @@ fun EmulationScreen(
                             closeDrawer()
                         },
                         onShowEmulatedUSBDevices = {
-                            showEmulatedUSBDevices = true
+                            showPortal()
                             closeDrawer()
                         },
                     )
