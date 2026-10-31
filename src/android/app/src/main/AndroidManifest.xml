@@ -78,7 +78,7 @@
         </provider>
 
         <provider
-            android:name=".skyportal.SkyportalBridgeProvider"
+            android:name=".emulation.skyportal.SkyportalBridgeProvider"
             android:authorities="${applicationId}.skyportal"
             android:exported="true"
             android:permission="app.skyportal.permission.BRIDGE" />

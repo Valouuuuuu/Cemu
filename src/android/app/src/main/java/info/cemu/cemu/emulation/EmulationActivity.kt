@@ -25,8 +25,8 @@ import info.cemu.cemu.emulation.input.DeviceMotionHandler
 import info.cemu.cemu.emulation.input.HotkeyManager
 import info.cemu.cemu.emulation.input.InputHandler
 import info.cemu.cemu.emulation.input.NativeInputDeviceListener
-import info.cemu.cemu.skyportal.PortalChord
-import info.cemu.cemu.skyportal.SkyportalPortal
+import info.cemu.cemu.emulation.skyportal.PortalChord
+import info.cemu.cemu.emulation.skyportal.SkyportalPortal
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch

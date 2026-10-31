@@ -69,7 +69,7 @@ import info.cemu.cemu.emulation.inputoverlay.InputOverlaySurfaceView.InputMode.D
 import info.cemu.cemu.emulation.inputoverlay.InputOverlaySurfaceView.InputMode.EDIT_POSITION
 import info.cemu.cemu.emulation.inputoverlay.InputOverlaySurfaceView.InputMode.EDIT_SIZE
 import info.cemu.cemu.nativeinterface.NativeEmulation
-import info.cemu.cemu.skyportal.SkyportalPortal
+import info.cemu.cemu.emulation.skyportal.SkyportalPortal
 import kotlinx.coroutines.launch
 
 @Composable

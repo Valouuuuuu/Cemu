@@ -1,4 +1,4 @@
-package info.cemu.cemu.skyportal
+package info.cemu.cemu.emulation.skyportal
 
 import android.app.Activity
 import android.content.ActivityNotFoundException

@@ -1,4 +1,4 @@
-package info.cemu.cemu.skyportal
+package info.cemu.cemu.emulation.skyportal
 
 import android.content.ContentProvider
 import android.content.ContentValues
