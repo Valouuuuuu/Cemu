@@ -5,16 +5,24 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.InputDevice
 import android.view.KeyEvent
 import androidx.core.net.toUri
 import info.cemu.cemu.common.android.context.internalFolder
 import info.cemu.cemu.common.android.inputdevice.listGameControllers
+import info.cemu.cemu.common.customdrivers.DriverMetadata
+import info.cemu.cemu.common.customdrivers.META_FILE_NAME
+import info.cemu.cemu.common.customdrivers.SUPPORTED_SCHEMA_VERSION
+import info.cemu.cemu.common.customdrivers.getCustomDriversDir
+import info.cemu.cemu.common.io.decodeJsonFromFile
+import info.cemu.cemu.common.io.unzip
 import info.cemu.cemu.emulation.emulatedusbdevices.SkylanderKey
 import info.cemu.cemu.emulation.emulatedusbdevices.findInstalledSkylanderFigures
 import info.cemu.cemu.emulation.emulatedusbdevices.readSkylanderFigureFile
 import info.cemu.cemu.emulation.emulatedusbdevices.readSkylanderKey
+import info.cemu.cemu.nativeinterface.NativeEmulation
 import info.cemu.cemu.nativeinterface.NativeEmulatedUSBDevices
 import info.cemu.cemu.nativeinterface.NativeGameTitles
 import info.cemu.cemu.nativeinterface.NativeInput
@@ -26,6 +34,8 @@ private const val SKYLANDERS_FOLDER = "emulatedUSBDevices/skylanders"
 private const val KEYS_FILE = "keys.txt"
 private const val CONTROLLER_MARKER = "skyportal-controller"
 private const val SKY_FILE_SIZE = 1024
+private const val DRIVER_MARKER = "skyportal-driver"
+private const val DRIVER_FOLDER_PREFIX = "skyportal-"
 
 private class BridgeSetting(val get: () -> Int, val set: (Int) -> Unit)
 
@@ -81,6 +91,9 @@ class SkyportalBridgeProvider : ContentProvider() {
             "getMappings" -> getMappings(context)
             "setMapping" -> setMapping(context, arg!!.toInt(), extras!!.getString("value")!!.toInt())
             "resetMappings" -> resetMappings(context)
+            "getDriver" -> getDriver(context)
+            "installDriver" -> installDriver(context, arg!!.toUri())
+            "setDriverEnabled" -> setDriverEnabled(context, extras!!.getBoolean("enabled"))
             "getSlots" -> getSlots()
             "getSavedFigures" -> getSavedFigures()
             "toggle" -> toggle(SkylanderKey(extras!!.getInt("id"), extras.getInt("variant")))
@@ -143,6 +156,64 @@ class SkyportalBridgeProvider : ContentProvider() {
         mapFirstController(context)
         val controller = listGameControllers().firstOrNull() ?: return result(false, "no_controller")
         applyDefaultMapping(controller)
+        return result(true)
+    }
+
+    /** The driver installed by the launcher, which stays installed while it is disabled. */
+    private fun installedDriver(context: Context): Pair<File, DriverMetadata>? {
+        val marker = context.internalFolder().resolve(DRIVER_MARKER)
+        if (!marker.isFile) {
+            return null
+        }
+        val folder = File(marker.readText())
+        val metadata = decodeJsonFromFile<DriverMetadata>(folder.resolve(META_FILE_NAME)) ?: return null
+        return folder to metadata
+    }
+
+    private fun getDriver(context: Context) = result(true).apply {
+        val driver = installedDriver(context)
+        putBoolean("supported", NativeEmulation.supportsLoadingCustomDriver())
+        putString("name", driver?.second?.name)
+        putBoolean("enabled", driver != null && NativeSettings.getCustomDriverPath() == driver.first.path)
+    }
+
+    private fun installDriver(context: Context, uri: Uri): Bundle {
+        val folder = getCustomDriversDir().toFile().resolve("$DRIVER_FOLDER_PREFIX${System.currentTimeMillis()}")
+        try {
+            folder.mkdirs()
+            val input = context.contentResolver.openInputStream(uri) ?: return result(false, "Cannot open $uri")
+            input.use { unzip(it, folder.toPath()) }
+
+            val metadata = decodeJsonFromFile<DriverMetadata>(folder.resolve(META_FILE_NAME))
+            if (metadata == null
+                || metadata.schemaVersion != SUPPORTED_SCHEMA_VERSION
+                || metadata.minApi > Build.VERSION.SDK_INT
+                || !folder.resolve(metadata.libraryName).isFile
+            ) {
+                folder.deleteRecursively()
+                return result(false, "invalid_driver")
+            }
+
+            val previous = installedDriver(context)
+            context.internalFolder().resolve(DRIVER_MARKER).writeText(folder.path)
+            NativeSettings.setCustomDriverPath(folder.path)
+            NativeSettings.saveSettings()
+            previous?.first?.deleteRecursively()
+            return result(true)
+        } catch (exception: Exception) {
+            folder.deleteRecursively()
+            return result(false, exception.message)
+        }
+    }
+
+    /** Disabling keeps the driver installed, so that it can be enabled again without a download. */
+    private fun setDriverEnabled(context: Context, enabled: Boolean): Bundle {
+        val driver = installedDriver(context)
+        if (enabled && driver == null) {
+            return result(false, "no_driver")
+        }
+        NativeSettings.setCustomDriverPath(if (enabled) driver!!.first.path else null)
+        NativeSettings.saveSettings()
         return result(true)
     }
 
