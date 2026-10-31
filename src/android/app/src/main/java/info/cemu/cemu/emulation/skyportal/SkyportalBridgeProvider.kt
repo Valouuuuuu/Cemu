@@ -12,6 +12,7 @@ import info.cemu.cemu.common.android.context.internalFolder
 import info.cemu.cemu.common.android.inputdevice.listGameControllers
 import info.cemu.cemu.emulation.emulatedusbdevices.SkylanderKey
 import info.cemu.cemu.emulation.emulatedusbdevices.findInstalledSkylanderFigures
+import info.cemu.cemu.emulation.emulatedusbdevices.readSkylanderFigureFile
 import info.cemu.cemu.emulation.emulatedusbdevices.readSkylanderKey
 import info.cemu.cemu.nativeinterface.NativeEmulatedUSBDevices
 import info.cemu.cemu.nativeinterface.NativeGameTitles
@@ -77,6 +78,7 @@ class SkyportalBridgeProvider : ContentProvider() {
             "getSettings" -> getSettings()
             "setSetting" -> setSetting(arg!!, extras!!.getInt("value"))
             "getSlots" -> getSlots()
+            "getSavedFigures" -> getSavedFigures()
             "toggle" -> toggle(SkylanderKey(extras!!.getInt("id"), extras.getInt("variant")))
             else -> throw IllegalArgumentException("Unknown method $method")
         }
@@ -175,6 +177,16 @@ class SkyportalBridgeProvider : ContentProvider() {
 
     private fun installedFigures() =
         findInstalledSkylanderFigures(NativeEmulatedUSBDevices.getInstalledSkylanderFigures())
+
+    private fun getSavedFigures() = result(true).apply {
+        val saved = NativeEmulatedUSBDevices.getInstalledSkylanderFigures()
+            .mapNotNull(::readSkylanderFigureFile)
+            .filter { it.hasProgress }
+            .map { it.key }
+            .distinct()
+        putIntArray("ids", saved.map { it.id }.toIntArray())
+        putIntArray("variants", saved.map { it.variant }.toIntArray())
+    }
 
     private fun isSlotUsed(slot: Int) = NativeEmulatedUSBDevices.getSkylandersFigureSlot(slot) != null
 
