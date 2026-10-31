@@ -218,6 +218,10 @@ object NativeGameTitles {
     @JvmStatic
     external fun checkIfTitleExists(metaPath: String): TitleExistsStatus?
 
+    /** Makes the emulator read keys.txt again after it changed. */
+    @JvmStatic
+    external fun reloadDiscKeys()
+
     @JvmStatic
     external fun addTitleFromPath(path: String)
 

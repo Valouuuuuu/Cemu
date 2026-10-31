@@ -49,6 +49,12 @@ void KeyCache_AddKey128(uint8* key)
 
 bool sKeyCachePrepared = false;
 
+void KeyCache_Reload()
+{
+	std::lock_guard lock(mtxKeyCache);
+	sKeyCachePrepared = false;
+}
+
 void KeyCache_Prepare()
 {
 	mtxKeyCache.lock();

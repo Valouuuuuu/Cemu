@@ -14,6 +14,7 @@ import info.cemu.cemu.emulation.emulatedusbdevices.SkylanderKey
 import info.cemu.cemu.emulation.emulatedusbdevices.findInstalledSkylanderFigures
 import info.cemu.cemu.emulation.emulatedusbdevices.readSkylanderKey
 import info.cemu.cemu.nativeinterface.NativeEmulatedUSBDevices
+import info.cemu.cemu.nativeinterface.NativeGameTitles
 import info.cemu.cemu.nativeinterface.NativeInput
 import info.cemu.cemu.nativeinterface.NativeSettings
 import java.io.File
@@ -23,6 +24,40 @@ private const val SKYLANDERS_FOLDER = "emulatedUSBDevices/skylanders"
 private const val KEYS_FILE = "keys.txt"
 private const val CONTROLLER_MARKER = "skyportal-controller"
 private const val SKY_FILE_SIZE = 1024
+
+private class BridgeSetting(val get: () -> Int, val set: (Int) -> Unit)
+
+private fun toggle(get: () -> Boolean, set: (Boolean) -> Unit) =
+    BridgeSetting({ if (get()) 1 else 0 }, { set(it != 0) })
+
+/** What the launcher's settings screen can change. It holds the labels: these are only the values. */
+private val SETTINGS = mapOf(
+    "asyncShaderCompile" to toggle(NativeSettings::getAsyncShaderCompile, NativeSettings::setAsyncShaderCompile),
+    "vsync" to BridgeSetting(NativeSettings::getVsyncMode, NativeSettings::setVsyncMode),
+    "accurateBarriers" to toggle(NativeSettings::getAccurateBarriers, NativeSettings::setAccurateBarriers),
+    "fullscreenScaling" to BridgeSetting(NativeSettings::getFullscreenScaling, NativeSettings::setFullscreenScaling),
+    "upscalingFilter" to BridgeSetting(NativeSettings::getUpscalingFilter, NativeSettings::setUpscalingFilter),
+    "downscalingFilter" to BridgeSetting(NativeSettings::getDownscalingFilter, NativeSettings::setDownscalingFilter),
+    "audioLatency" to BridgeSetting(NativeSettings::getAudioLatency, NativeSettings::setAudioLatency),
+    "audioTv" to toggle({ NativeSettings.getAudioDeviceEnabled(true) }, { NativeSettings.setAudioDeviceEnabled(it, true) }),
+    "audioTvChannels" to BridgeSetting({ NativeSettings.getAudioDeviceChannels(true) }, { NativeSettings.setAudioDeviceChannels(it, true) }),
+    "audioTvVolume" to BridgeSetting({ NativeSettings.getAudioDeviceVolume(true) }, { NativeSettings.setAudioDeviceVolume(it, true) }),
+    "audioPad" to toggle({ NativeSettings.getAudioDeviceEnabled(false) }, { NativeSettings.setAudioDeviceEnabled(it, false) }),
+    "audioPadVolume" to BridgeSetting({ NativeSettings.getAudioDeviceVolume(false) }, { NativeSettings.setAudioDeviceVolume(it, false) }),
+    "overlayPosition" to BridgeSetting(NativeSettings::getOverlayPosition, NativeSettings::setOverlayPosition),
+    "overlayScale" to BridgeSetting(NativeSettings::getOverlayTextScalePercentage, NativeSettings::setOverlayTextScalePercentage),
+    "overlayFps" to toggle(NativeSettings::isOverlayFPSEnabled, NativeSettings::setOverlayFPSEnabled),
+    "overlayDrawCalls" to toggle(NativeSettings::isOverlayDrawCallsPerFrameEnabled, NativeSettings::setOverlayDrawCallsPerFrameEnabled),
+    "overlayCpu" to toggle(NativeSettings::isOverlayCPUUsageEnabled, NativeSettings::setOverlayCPUUsageEnabled),
+    "overlayRam" to toggle(NativeSettings::isOverlayRAMUsageEnabled, NativeSettings::setOverlayRAMUsageEnabled),
+    "overlayDebug" to toggle(NativeSettings::isOverlayDebugEnabled, NativeSettings::setOverlayDebugEnabled),
+    "notificationsPosition" to BridgeSetting(NativeSettings::getNotificationsPosition, NativeSettings::setNotificationsPosition),
+    "notificationsScale" to BridgeSetting(NativeSettings::getNotificationsTextScalePercentage, NativeSettings::setNotificationsTextScalePercentage),
+    "notifyControllerProfiles" to toggle(NativeSettings::isNotificationControllerProfilesEnabled, NativeSettings::setNotificationControllerProfilesEnabled),
+    "notifyShaderCompiler" to toggle(NativeSettings::isNotificationShaderCompilerEnabled, NativeSettings::setNotificationShaderCompilerEnabled),
+    "notifyFriendList" to toggle(NativeSettings::isNotificationFriendListEnabled, NativeSettings::setNotificationFriendListEnabled),
+    "consoleLanguage" to BridgeSetting(NativeSettings::getConsoleLanguage, NativeSettings::setConsoleLanguage),
+)
 
 /**
  * Lets the Skyportal launcher set up this emulator and control its Skylanders portal.
@@ -39,6 +74,8 @@ class SkyportalBridgeProvider : ContentProvider() {
             "prepare" -> prepare(context)
             "importKeys" -> importKeys(context, arg!!.toUri())
             "importFigure" -> importFigure(context, arg!!.toUri(), extras!!.getString("name")!!)
+            "getSettings" -> getSettings()
+            "setSetting" -> setSetting(arg!!, extras!!.getInt("value"))
             "getSlots" -> getSlots()
             "toggle" -> toggle(SkylanderKey(extras!!.getInt("id"), extras.getInt("variant")))
             else -> throw IllegalArgumentException("Unknown method $method")
@@ -79,7 +116,20 @@ class SkyportalBridgeProvider : ContentProvider() {
     private fun importKeys(context: Context, uri: Uri): Bundle {
         val target = context.internalFolder().resolve(KEYS_FILE)
         val temporary = File(target.path + ".tmp")
-        return copyFrom(context, uri, temporary) { temporary.renameTo(target) }
+        return copyFrom(context, uri, temporary) {
+            temporary.renameTo(target).also { NativeGameTitles.reloadDiscKeys() }
+        }
+    }
+
+    private fun getSettings() = result(true).apply {
+        SETTINGS.forEach { (id, setting) -> putInt(id, setting.get()) }
+    }
+
+    private fun setSetting(id: String, value: Int): Bundle {
+        val setting = SETTINGS[id] ?: return result(false, "Unknown setting $id")
+        setting.set(value)
+        NativeSettings.saveSettings()
+        return result(true)
     }
 
     /** Never replaces a figure that already exists here: it may hold game progress. */

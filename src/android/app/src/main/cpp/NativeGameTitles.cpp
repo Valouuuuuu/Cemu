@@ -1,6 +1,7 @@
 #include "AndroidGameTitleLoadedCallback.h"
 #include "Cafe/TitleList/SaveList.h"
 #include "Cafe/GameProfile/GameProfile.h"
+#include "Cafe/Filesystem/FST/KeyCache.h"
 #include "JNIUtils.h"
 #include "GameTitleLoader.h"
 #include "WuaConverter.h"
@@ -373,6 +374,12 @@ Java_info_cemu_cemu_nativeinterface_NativeGameTitles_setSaveListCallback([[maybe
 		g_saveListCallback = nullptr;
 	else
 		g_saveListCallback = std::make_unique<SaveListCallback>(save_list_callback);
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeGameTitles_reloadDiscKeys([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	KeyCache_Reload();
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT jobject JNICALL
