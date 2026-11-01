@@ -32,6 +32,7 @@ import java.io.File
 import java.io.IOException
 
 private const val SKYLANDERS_FOLDER = "emulatedUSBDevices/skylanders"
+private const val FIGURE_BACKUPS_FOLDER = "skyportal-figure-backups"
 private const val KEYS_FILE = "keys.txt"
 private const val CONTROLLER_MARKER = "skyportal-controller"
 private const val SKY_FILE_SIZE = 1024
@@ -99,6 +100,8 @@ class SkyportalBridgeProvider : ContentProvider() {
             "getSlots" -> getSlots()
             "getSavedFigures" -> getSavedFigures()
             "getPortalActivity" -> getPortalActivity()
+            "getFigureCopies" -> getFigureCopies()
+            "storeFigureCopy" -> storeFigureCopy(context, extras!!.getString("name")!!, extras.getByteArray("data")!!)
             "toggle" -> toggle(SkylanderKey(extras!!.getInt("id"), extras.getInt("variant")))
             else -> throw IllegalArgumentException("Unknown method $method")
         }
@@ -291,6 +294,46 @@ class SkyportalBridgeProvider : ContentProvider() {
             .distinct()
         putIntArray("ids", saved.map { it.id }.toIntArray())
         putIntArray("variants", saved.map { it.variant }.toIntArray())
+    }
+
+    /** The figures that hold game progress, for the launcher to give them to the other emulator. */
+    private fun getFigureCopies() = result(true).apply {
+        val copies = installedFigures().values.mapNotNull(::readSkylanderFigureFile)
+            .filter { it.hasProgress }
+            .map { file ->
+                Bundle().apply {
+                    putString("name", file.figure.name)
+                    putLong("lastModified", file.lastModified)
+                    putByteArray("data", File(file.figure.path).readBytes())
+                }
+            }
+        putParcelableArrayList("copies", ArrayList(copies))
+    }
+
+    /** Refuses a figure that is on the portal, as the game then writes to it. The old file is kept aside. */
+    private fun storeFigureCopy(context: Context, name: String, data: ByteArray): Bundle {
+        if (data.size != SKY_FILE_SIZE) {
+            return result(false, "Invalid figure")
+        }
+        getSlots()
+        val key = readSkylanderKey(data)
+        if (key in portal) {
+            return result(false, "on_portal")
+        }
+        val folder = context.internalFolder().resolve(SKYLANDERS_FOLDER)
+        val existing = installedFigures()[key]?.let { File(it.path) }
+        try {
+            folder.mkdirs()
+            existing?.copyTo(
+                context.internalFolder().resolve(FIGURE_BACKUPS_FOLDER)
+                    .resolve("${key.id}-${key.variant}-${System.currentTimeMillis()}.sky")
+            )
+            val temporary = folder.resolve("store.tmp")
+            temporary.writeBytes(data)
+            return result(temporary.renameTo(existing ?: uniqueFile(folder, name)))
+        } catch (exception: IOException) {
+            return result(false, exception.message)
+        }
     }
 
     private fun getPortalActivity() = result(true).apply {
