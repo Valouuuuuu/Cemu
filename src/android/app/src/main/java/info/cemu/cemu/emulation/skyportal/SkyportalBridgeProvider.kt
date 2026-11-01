@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.view.InputDevice
 import android.view.KeyEvent
 import androidx.core.net.toUri
+import info.cemu.cemu.common.android.context.AppInitialization
 import info.cemu.cemu.common.android.context.internalFolder
 import info.cemu.cemu.common.android.inputdevice.listGameControllers
 import info.cemu.cemu.common.customdrivers.DriverMetadata
@@ -82,6 +83,7 @@ class SkyportalBridgeProvider : ContentProvider() {
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? = synchronized(portal) {
         val context = context ?: return null
+        AppInitialization.await()
         when (method) {
             "prepare" -> prepare(context)
             "importKeys" -> importKeys(context, arg!!.toUri())

@@ -6,6 +6,7 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import info.cemu.cemu.common.android.context.AppInitialization
 import info.cemu.cemu.graphicpacks.GraphicPacksDownloadStatus
 import info.cemu.cemu.graphicpacks.GraphicPacksDownloader
 import info.cemu.cemu.nativeinterface.NativeGraphicPacks
@@ -30,6 +31,7 @@ class SkyportalModsProvider : ContentProvider() {
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         val context = context ?: return null
+        AppInitialization.await()
         return when (method) {
             "getMods" -> getMods(context)
             "setModActive" -> setModActive(extras!!.getLong("id"), extras.getBoolean("active"))

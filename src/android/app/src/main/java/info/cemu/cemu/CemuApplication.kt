@@ -1,6 +1,7 @@
 package info.cemu.cemu
 
 import android.app.Application
+import info.cemu.cemu.common.android.context.AppInitialization
 import info.cemu.cemu.common.android.context.internalFolder
 import info.cemu.cemu.common.settings.AppSettingsStore
 import info.cemu.cemu.common.ui.localization.setLanguage
@@ -38,6 +39,8 @@ class CemuApplication : Application() {
         initializeCemu()
 
         saveDataFiles()
+
+        AppInitialization.markFinished()
     }
 
     private fun initializeTranslations() {
