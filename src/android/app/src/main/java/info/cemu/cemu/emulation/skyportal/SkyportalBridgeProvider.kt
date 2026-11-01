@@ -48,6 +48,7 @@ private fun toggle(get: () -> Boolean, set: (Boolean) -> Unit) =
 private val SETTINGS = mapOf(
     "asyncShaderCompile" to toggle(NativeSettings::getAsyncShaderCompile, NativeSettings::setAsyncShaderCompile),
     "vsync" to BridgeSetting(NativeSettings::getVsyncMode, NativeSettings::setVsyncMode),
+    "threadQuantumPercent" to BridgeSetting(NativeSettings::getThreadQuantumPercent, NativeSettings::setThreadQuantumPercent),
     "accurateBarriers" to toggle(NativeSettings::getAccurateBarriers, NativeSettings::setAccurateBarriers),
     "fullscreenScaling" to BridgeSetting(NativeSettings::getFullscreenScaling, NativeSettings::setFullscreenScaling),
     "upscalingFilter" to BridgeSetting(NativeSettings::getUpscalingFilter, NativeSettings::setUpscalingFilter),

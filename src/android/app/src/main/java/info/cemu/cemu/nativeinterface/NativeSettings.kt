@@ -28,6 +28,13 @@ object NativeSettings {
     @JvmStatic
     external fun getVsyncMode(): Int
 
+    /** How long the emulated threads run before switching, relative to the game's profile. */
+    @JvmStatic
+    external fun getThreadQuantumPercent(): Int
+
+    @JvmStatic
+    external fun setThreadQuantumPercent(percent: Int)
+
     @JvmStatic
     external fun setVsyncMode(value: Int)
 

@@ -4,6 +4,7 @@
 #include "boost/nowide/convert.hpp"
 
 #include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
 #include "Common/FileStream.h"
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
@@ -172,7 +173,7 @@ void gameProfile_load()
 	g_current_game_profile->Load(CafeSystem::GetForegroundTitleId());
 
 	// apply some settings immediately
-	ppcThreadQuantum = g_current_game_profile->GetThreadQuantum();
+	ppcThreadQuantum = g_current_game_profile->GetThreadQuantum() * GetConfig().thread_quantum_percent.GetValue() / 100;
 
 	if (ppcThreadQuantum != GameProfile::kThreadQuantumDefault)
 		cemuLog_log(LogType::Force, "Thread quantum set to {}", ppcThreadQuantum);

@@ -419,6 +419,7 @@ struct CemuConfig
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
 	ConfigValue<bool> play_boot_sound{false};
+	ConfigValue<sint32> thread_quantum_percent{100};
 
 #if BOOST_PLAT_ANDROID
 	ConfigValue<std::string> custom_driver_path{};
