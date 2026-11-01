@@ -326,6 +326,8 @@ class SkyportalBridgeProvider : ContentProvider() {
         val freeSlot = portal.indices.firstOrNull { !isSlotUsed(it) }
             ?: return result(false, "portal_full")
 
+        NativeEmulatedUSBDevices.attachMissingDevices()
+
         val figure = installedFigures()[key] ?: run {
             NativeEmulatedUSBDevices.createSkylanderFigure(key.id, key.variant)
             installedFigures()[key]

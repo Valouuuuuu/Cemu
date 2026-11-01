@@ -110,6 +110,10 @@ namespace nsyshid
 	// What the game did with the emulated portal, to tell where a figure gets lost
 	struct SkylanderPortalActivity final
 	{
+		std::atomic<uint32> moduleLoads = 0;
+		std::atomic<uint32> clients = 0;
+		std::atomic<uint32> attachChecks = 0;
+		std::atomic<bool> enabledAtFirstCheck = false;
 		std::atomic<uint32> attached = 0;
 		std::atomic<uint32> opened = 0;
 		std::atomic<uint32> statusReads = 0;

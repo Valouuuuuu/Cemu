@@ -5,6 +5,7 @@
 #include "nsyshid.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Backend.h"
+#include "Skylander.h"
 #include "Whitelist.h"
 
 namespace nsyshid
@@ -183,6 +184,24 @@ namespace nsyshid
 		backend::AttachDefaultBackends();
 	}
 
+	void AttachMissingDevices()
+	{
+		std::list<std::shared_ptr<Backend>> backendListCopy;
+		{
+			std::lock_guard<std::recursive_mutex> lock(hidMutex);
+			backendListCopy = backendList;
+		}
+		if (backendListCopy.empty())
+		{
+			AttachDefaultBackends();
+			return;
+		}
+		for (const auto& backend : backendListCopy)
+		{
+			backend->OnAttach();
+		}
+	}
+
 	bool AttachDevice(const std::shared_ptr<Device>& device)
 	{
 		std::lock_guard<std::recursive_mutex> lock(hidMutex);
@@ -275,6 +294,7 @@ namespace nsyshid
 		ppcDefineParamMPTR(callbackFuncMPTR, 1);
 		cemuLog_logDebug(LogType::Force, "nsyshid.HIDAddClient(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 		hidClient->callbackFunc = callbackFuncMPTR;
+		g_skyportalActivity.clients++;
 
 		std::lock_guard<std::recursive_mutex> lock(hidMutex);
 		AttachClientToList(hidClient);
@@ -971,6 +991,7 @@ namespace nsyshid
 		{
 			if (reason == coreinit::RplEntryReason::Loaded)
 			{
+				g_skyportalActivity.moduleLoads++;
 				// initialise whitelist
 				Whitelist::GetInstance();
 				AttachDefaultBackends();

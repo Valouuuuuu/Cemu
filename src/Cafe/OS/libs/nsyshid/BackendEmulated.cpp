@@ -22,6 +22,10 @@ namespace nsyshid::backend::emulated
 
 	void BackendEmulated::AttachVisibleDevices()
 	{
+		if (g_skyportalActivity.attachChecks++ == 0)
+		{
+			g_skyportalActivity.enabledAtFirstCheck = GetConfig().emulated_usb_devices.emulate_skylander_portal.GetValue();
+		}
 		if (GetConfig().emulated_usb_devices.emulate_skylander_portal && !FindDeviceById(0x1430, 0x0150))
 		{
 			cemuLog_logDebug(LogType::Force, "Attaching Emulated Portal");

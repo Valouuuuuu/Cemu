@@ -1,3 +1,4 @@
+#include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/nsyshid/Infinity.h"
 #include "Cafe/OS/libs/nsyshid/Skylander.h"
 #include "Cafe/OS/libs/nsyshid/Dimensions.h"
@@ -352,11 +353,24 @@ Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_clearSkylandersFigu
 	NativeEmulatedUSBDevices::ClearSkylandersFigure(slot);
 }
 
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_attachMissingDevices([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	if (CafeSystem::IsTitleRunning())
+	{
+		nsyshid::AttachMissingDevices();
+	}
+}
+
 extern "C" JNIEXPORT jintArray JNICALL
 Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_getSkylanderPortalActivity(JNIEnv* env, [[maybe_unused]] jclass clazz)
 {
 	const auto& activity = nsyshid::g_skyportalActivity;
-	const std::array<jint, 6> values = {
+	const std::array<jint, 10> values = {
+		static_cast<jint>(activity.moduleLoads.load()),
+		static_cast<jint>(activity.clients.load()),
+		static_cast<jint>(activity.attachChecks.load()),
+		static_cast<jint>(activity.enabledAtFirstCheck.load()),
 		static_cast<jint>(activity.attached.load()),
 		static_cast<jint>(activity.opened.load()),
 		static_cast<jint>(activity.statusReads.load()),

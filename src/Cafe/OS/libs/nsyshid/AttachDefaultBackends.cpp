@@ -7,6 +7,7 @@ namespace nsyshid::backend
 {
 	void AttachDefaultBackends()
 	{
+#ifndef __ANDROID__
 		// add libusb backend
 		{
 			auto backendLibusb = std::make_shared<backend::libusb::BackendLibusb>();
@@ -15,6 +16,7 @@ namespace nsyshid::backend
 				AttachBackend(backendLibusb);
 			}
 		}
+#endif
 	   // add emulated backend
 		{
 			auto backendEmulated = std::make_shared<backend::emulated::BackendEmulated>();

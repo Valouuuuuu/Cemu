@@ -94,7 +94,14 @@ object NativeEmulatedUSBDevices {
     @JvmStatic
     external fun clearSkylandersFigure(slot: Int)
 
-    /** How many times the portal was attached and opened, status reads, commands, block reads, last command. */
+    /** Gives the running game the emulated devices it does not have yet. */
+    @JvmStatic
+    external fun attachMissingDevices()
+
+    /**
+     * Loads of the module, clients, attach checks, whether the portal was enabled at the first one,
+     * how many times it was attached and opened, status reads, commands, block reads, last command.
+     */
     @JvmStatic
     external fun getSkylanderPortalActivity(): IntArray
 
