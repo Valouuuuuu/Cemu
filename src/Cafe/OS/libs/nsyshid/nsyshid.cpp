@@ -184,24 +184,6 @@ namespace nsyshid
 		backend::AttachDefaultBackends();
 	}
 
-	void AttachMissingDevices()
-	{
-		std::list<std::shared_ptr<Backend>> backendListCopy;
-		{
-			std::lock_guard<std::recursive_mutex> lock(hidMutex);
-			backendListCopy = backendList;
-		}
-		if (backendListCopy.empty())
-		{
-			AttachDefaultBackends();
-			return;
-		}
-		for (const auto& backend : backendListCopy)
-		{
-			backend->OnAttach();
-		}
-	}
-
 	bool AttachDevice(const std::shared_ptr<Device>& device)
 	{
 		std::lock_guard<std::recursive_mutex> lock(hidMutex);

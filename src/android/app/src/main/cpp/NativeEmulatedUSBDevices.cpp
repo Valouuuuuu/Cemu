@@ -1,4 +1,3 @@
-#include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/nsyshid/Infinity.h"
 #include "Cafe/OS/libs/nsyshid/Skylander.h"
 #include "Cafe/OS/libs/nsyshid/Dimensions.h"
@@ -351,15 +350,6 @@ extern "C" JNIEXPORT void JNICALL
 Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_clearSkylandersFigure([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint slot)
 {
 	NativeEmulatedUSBDevices::ClearSkylandersFigure(slot);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_attachMissingDevices([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
-{
-	if (CafeSystem::IsTitleRunning())
-	{
-		nsyshid::AttachMissingDevices();
-	}
 }
 
 extern "C" JNIEXPORT jintArray JNICALL
