@@ -15,12 +15,25 @@ import kotlinx.coroutines.runBlocking
 
 private const val GAME_FILTER = "skylanders"
 
-/** The community pack of Trap Team has 40 and 60 FPS, and its vsync frequency follows its target. */
-private const val FRAME_RATE_PACK = "Skylanders Trap Team/Mods/FPS"
-private const val FRAME_RATE_PRESET = "45 FPS"
-private const val FRAME_RATE_PRESET_RULES =
-    "[Preset]\nname = 45 FPS\ncategory = FPS Limit\n\$targetFPS:int = 45\n\n"
-private val FRAME_RATE_ANCHOR = Regex("""\[Preset\]\s+name\s*=\s*40 FPS""")
+private class ExtraPreset(val pack: String, val name: String, val rules: String, val before: Regex)
+
+/** Choices that the community packs of Trap Team do not have, added to their downloaded rules. */
+private val EXTRA_PRESETS = listOf(
+    // It has 40 and 60 FPS, and its vsync frequency follows its target
+    ExtraPreset(
+        pack = "Skylanders Trap Team/Mods/FPS",
+        name = "45 FPS",
+        rules = "[Preset]\nname = 45 FPS\ncategory = FPS Limit\n\$targetFPS:int = 45\n\n",
+        before = Regex("""\[Preset\]\s+name\s*=\s*40 FPS"""),
+    ),
+    // It has 50% and 100%, and this value only multiplies the size of the shadows' texture
+    ExtraPreset(
+        pack = "Skylanders Trap Team/Graphics",
+        name = "Low-Medium (75%)",
+        rules = "[Preset]\ncategory = Shadow Quality\nname = Low-Medium (75%)\n\$shadowRes = 0.75\n\n",
+        before = Regex("""\[Preset\]\s+category\s*=\s*Shadow Quality\s+name\s*=\s*Medium"""),
+    ),
+)
 
 /**
  * Lets the Skyportal launcher list, download and select the graphic packs for Skylanders.
@@ -46,26 +59,33 @@ class SkyportalModsProvider : ContentProvider() {
         putString("error", error)
     }
 
-    /** @return whether the pack was changed */
-    private fun addFrameRatePreset(context: Context): Boolean {
+    /** @return whether a pack was changed */
+    private fun addExtraPresets(context: Context): Boolean {
         val packs = context.getExternalFilesDir(null)?.resolve("graphicPacks/downloadedGraphicPacks")
             ?: return false
         val changed = packs.walkTopDown()
-            .filter { it.name == "rules.txt" && it.parentFile?.name == "FPS" }
+            .filter { it.name == "rules.txt" }
             .filter { file ->
                 val rules = file.readText()
-                val anchor = FRAME_RATE_ANCHOR.find(rules)
-                val isMissing = FRAME_RATE_PACK in rules && FRAME_RATE_PRESET !in rules && anchor != null
-                if (isMissing) {
-                    file.writeText(rules.replaceRange(anchor!!.range.first, anchor.range.first, FRAME_RATE_PRESET_RULES))
+                val updated = EXTRA_PRESETS.fold(rules) { current, preset ->
+                    val anchor = preset.before.find(current)
+                    if (preset.pack in current && preset.name !in current && anchor != null) {
+                        current.replaceRange(anchor.range.first, anchor.range.first, preset.rules)
+                    } else {
+                        current
+                    }
                 }
-                isMissing
+                val isChanged = updated != rules
+                if (isChanged) {
+                    file.writeText(updated)
+                }
+                isChanged
             }
         return changed.toList().isNotEmpty()
     }
 
     private fun getMods(context: Context) = result(true).apply {
-        if (addFrameRatePreset(context)) {
+        if (addExtraPresets(context)) {
             NativeGraphicPacks.refreshGraphicPacks()
         }
         val mods = NativeGraphicPacks.getGraphicPackBasicInfos()
