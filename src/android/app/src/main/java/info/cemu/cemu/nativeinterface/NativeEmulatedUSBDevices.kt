@@ -94,6 +94,10 @@ object NativeEmulatedUSBDevices {
     @JvmStatic
     external fun clearSkylandersFigure(slot: Int)
 
+    /** How many times the portal was attached and opened, status reads, commands, block reads, last command. */
+    @JvmStatic
+    external fun getSkylanderPortalActivity(): IntArray
+
     @JvmStatic
     external fun tempRemoveDimensionsFigure(index: Int)
 

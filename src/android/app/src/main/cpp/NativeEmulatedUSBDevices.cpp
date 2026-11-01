@@ -352,6 +352,23 @@ Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_clearSkylandersFigu
 	NativeEmulatedUSBDevices::ClearSkylandersFigure(slot);
 }
 
+extern "C" JNIEXPORT jintArray JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_getSkylanderPortalActivity(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	const auto& activity = nsyshid::g_skyportalActivity;
+	const std::array<jint, 6> values = {
+		static_cast<jint>(activity.attached.load()),
+		static_cast<jint>(activity.opened.load()),
+		static_cast<jint>(activity.statusReads.load()),
+		static_cast<jint>(activity.commands.load()),
+		static_cast<jint>(activity.blockReads.load()),
+		static_cast<jint>(activity.lastCommand.load()),
+	};
+	jintArray result = env->NewIntArray(values.size());
+	env->SetIntArrayRegion(result, 0, values.size(), values.data());
+	return result;
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_info_cemu_cemu_nativeinterface_NativeEmulatedUSBDevices_clearInfinityFigure([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint slot)
 {

@@ -98,6 +98,7 @@ class SkyportalBridgeProvider : ContentProvider() {
             "setDriverEnabled" -> setDriverEnabled(context, extras!!.getBoolean("enabled"))
             "getSlots" -> getSlots()
             "getSavedFigures" -> getSavedFigures()
+            "getPortalActivity" -> getPortalActivity()
             "toggle" -> toggle(SkylanderKey(extras!!.getInt("id"), extras.getInt("variant")))
             else -> throw IllegalArgumentException("Unknown method $method")
         }
@@ -290,6 +291,12 @@ class SkyportalBridgeProvider : ContentProvider() {
             .distinct()
         putIntArray("ids", saved.map { it.id }.toIntArray())
         putIntArray("variants", saved.map { it.variant }.toIntArray())
+    }
+
+    private fun getPortalActivity() = result(true).apply {
+        putBoolean("enabled", NativeSettings.isEmulateSkylanderPortalEnabled())
+        putInt("installedFigures", NativeEmulatedUSBDevices.getInstalledSkylanderFigures().size)
+        putIntArray("activity", NativeEmulatedUSBDevices.getSkylanderPortalActivity())
     }
 
     private fun isSlotUsed(slot: Int) = NativeEmulatedUSBDevices.getSkylandersFigureSlot(slot) != null

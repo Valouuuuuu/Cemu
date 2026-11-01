@@ -12,6 +12,7 @@
 namespace nsyshid
 {
 	SkylanderUSB g_skyportal;
+	SkylanderPortalActivity g_skyportalActivity;
 
 	const std::map<const std::pair<const uint16, const uint16>, const char*>
 		s_listSkylanders = {
@@ -526,6 +527,7 @@ namespace nsyshid
 		: Device(0x1430, 0x0150, 1, 2, 0)
 	{
 		m_IsOpened = false;
+		g_skyportalActivity.attached++;
 	}
 
 	bool SkylanderPortalDevice::Open()
@@ -533,6 +535,7 @@ namespace nsyshid
 		if (!IsOpened())
 		{
 			m_IsOpened = true;
+			g_skyportalActivity.opened++;
 		}
 		return true;
 	}
@@ -671,6 +674,8 @@ namespace nsyshid
 	void SkylanderUSB::ControlTransfer(uint8* buf, uint32 length)
 	{
 		std::array<uint8, 64> interruptResponse = {};
+		g_skyportalActivity.commands++;
+		g_skyportalActivity.lastCommand = buf[0];
 		switch (buf[0])
 		{
 		case 'A':
@@ -923,6 +928,7 @@ namespace nsyshid
 	{
 		std::lock_guard lock(m_skyMutex);
 
+		g_skyportalActivity.blockReads++;
 		const auto& skylander = m_skylanders[skyNum];
 
 		replyBuf[0] = 'Q';
@@ -964,6 +970,7 @@ namespace nsyshid
 	{
 		std::lock_guard lock(m_queryMutex);
 		std::array<uint8, 64> interruptResponse = {};
+		g_skyportalActivity.statusReads++;
 
 		if (!m_queries.empty())
 		{

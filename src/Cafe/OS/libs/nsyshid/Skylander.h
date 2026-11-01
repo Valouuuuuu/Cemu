@@ -106,4 +106,16 @@ namespace nsyshid
 		SkylanderLEDColor m_colorTrap = {};
 	};
 	extern SkylanderUSB g_skyportal;
+
+	// What the game did with the emulated portal, to tell where a figure gets lost
+	struct SkylanderPortalActivity final
+	{
+		std::atomic<uint32> attached = 0;
+		std::atomic<uint32> opened = 0;
+		std::atomic<uint32> statusReads = 0;
+		std::atomic<uint32> commands = 0;
+		std::atomic<uint32> blockReads = 0;
+		std::atomic<uint8> lastCommand = 0;
+	};
+	extern SkylanderPortalActivity g_skyportalActivity;
 } // namespace nsyshid
