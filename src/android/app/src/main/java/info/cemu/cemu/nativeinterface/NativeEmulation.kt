@@ -45,6 +45,14 @@ object NativeEmulation {
     @JvmStatic
     external fun resumeTitle()
 
+    /** Starts timing the frames with each effect hidden in turn, to find out which ones cost the most. */
+    @JvmStatic
+    external fun startCostAnalysis()
+
+    /** The progress or the result of that analysis. */
+    @JvmStatic
+    external fun getCostAnalysis(): String
+
     @JvmStatic
     external fun initializeSystems()
 

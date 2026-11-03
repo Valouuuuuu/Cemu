@@ -1,6 +1,7 @@
 #include "AndroidFilesystemCallbacks.h"
 #include "AndroidInputHelpers.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/HW/Latte/Core/LatteCostProbe.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
@@ -400,4 +401,16 @@ extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_info_cemu_cemu_nativeinterface_NativeEmulation_resumeTitle([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
 {
 	CafeSystem::ResumeTitle();
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulation_startCostAnalysis([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	LatteCostProbe_Request();
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT jstring JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulation_getCostAnalysis(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return env->NewStringUTF(LatteCostProbe_GetReport().c_str());
 }

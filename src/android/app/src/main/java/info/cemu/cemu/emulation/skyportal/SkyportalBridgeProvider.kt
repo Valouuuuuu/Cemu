@@ -93,6 +93,8 @@ class SkyportalBridgeProvider : ContentProvider() {
             "importFigure" -> importFigure(context, arg!!.toUri(), extras!!.getString("name")!!)
             "getSettings" -> getSettings()
             "setSetting" -> setSetting(arg!!, extras!!.getInt("value"))
+            "startAnalysis" -> startAnalysis()
+            "getAnalysis" -> getAnalysis()
             "getMappings" -> getMappings(context)
             "setMapping" -> setMapping(context, arg!!.toInt(), extras!!.getString("value")!!.toInt())
             "resetMappings" -> resetMappings(context)
@@ -236,6 +238,13 @@ class SkyportalBridgeProvider : ContentProvider() {
     private fun getSettings() = result(true).apply {
         SETTINGS.forEach { (id, setting) -> putInt(id, setting.get()) }
     }
+
+    private fun startAnalysis(): Bundle {
+        NativeEmulation.startCostAnalysis()
+        return result(true)
+    }
+
+    private fun getAnalysis() = result(true).apply { putString("text", NativeEmulation.getCostAnalysis()) }
 
     private fun setSetting(id: String, value: Int): Bundle {
         val setting = SETTINGS[id] ?: return result(false, "Unknown setting $id")

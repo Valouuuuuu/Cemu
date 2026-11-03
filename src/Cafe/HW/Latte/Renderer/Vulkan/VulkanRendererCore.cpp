@@ -5,6 +5,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
 
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/LatteCostProbe.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
@@ -1297,10 +1298,15 @@ void VulkanRenderer::draw_beginSequence()
 
 	if (rasterizerEnable == false && streamoutEnable == false)
 		m_state.drawSequenceSkip = true;
+	else if (LatteCostProbe_IsRunning() && streamoutEnable == false && LatteCostProbe_ShouldHide(LatteSHRC_GetActivePixelShader()))
+		m_state.drawSequenceSkip = true;
 }
 
 void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
+	if (LatteCostProbe_IsRunning())
+		LatteCostProbe_CountDraw(LatteSHRC_GetActivePixelShader(), count);
+
 	if (m_state.drawSequenceSkip)
 	{
 		LatteGPUState.drawCallCounter++;

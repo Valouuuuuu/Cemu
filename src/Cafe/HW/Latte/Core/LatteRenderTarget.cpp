@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
+#include "Cafe/HW/Latte/Core/LatteCostProbe.h"
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 #include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
@@ -683,6 +684,7 @@ void LatteRenderTarget_trackUpdates()
 
 void LatteRenderTarget_itHLESwapScanBuffer()
 {
+	LatteCostProbe_OnFrameEnd();
 	performanceMonitor.cycle[performanceMonitor.cycleIndex].frameCounter++;
 	if(LatteGPUState.frameCounter > 5)
 		performanceMonitor.gpuTime_frameTime.endMeasuring();
