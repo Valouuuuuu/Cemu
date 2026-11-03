@@ -35,6 +35,13 @@ object NativeSettings {
     @JvmStatic
     external fun setThreadQuantumPercent(percent: Int)
 
+    /** Whether the emulated cores and the graphics thread stay on the fastest cores of the processor. */
+    @JvmStatic
+    external fun getPreferBigCores(): Boolean
+
+    @JvmStatic
+    external fun setPreferBigCores(enabled: Boolean)
+
     @JvmStatic
     external fun setVsyncMode(value: Int)
 

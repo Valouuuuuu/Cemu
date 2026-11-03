@@ -14,6 +14,8 @@
 #include "util/Fiber/Fiber.h"
 
 #include "util/helpers/helpers.h"
+#include "util/SystemInfo/SystemInfo.h"
+#include "config/CemuConfig.h"
 
 #ifdef __arm64__
 #if defined(__clang__)
@@ -1430,6 +1432,10 @@ namespace coreinit
 	{
 		SetThreadName(fmt::format("OSSched[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
 		t_assignedCoreIndex = (sint32)(uintptr_t)_assignedCoreIndex;
+#if BOOST_PLAT_ANDROID
+		if (GetConfig().prefer_big_cores)
+			RunCurrentThreadOnFastCores();
+#endif
 
 		enableFlushDenormalsToZero();
 

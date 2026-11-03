@@ -49,6 +49,7 @@ private val SETTINGS = mapOf(
     "asyncShaderCompile" to toggle(NativeSettings::getAsyncShaderCompile, NativeSettings::setAsyncShaderCompile),
     "vsync" to BridgeSetting(NativeSettings::getVsyncMode, NativeSettings::setVsyncMode),
     "threadQuantumPercent" to BridgeSetting(NativeSettings::getThreadQuantumPercent, NativeSettings::setThreadQuantumPercent),
+    "preferBigCores" to toggle(NativeSettings::getPreferBigCores, NativeSettings::setPreferBigCores),
     "accurateBarriers" to toggle(NativeSettings::getAccurateBarriers, NativeSettings::setAccurateBarriers),
     "fullscreenScaling" to BridgeSetting(NativeSettings::getFullscreenScaling, NativeSettings::setFullscreenScaling),
     "upscalingFilter" to BridgeSetting(NativeSettings::getUpscalingFilter, NativeSettings::setUpscalingFilter),

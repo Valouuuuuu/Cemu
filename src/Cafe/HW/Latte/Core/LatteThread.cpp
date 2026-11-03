@@ -16,6 +16,8 @@
 
 #include <imgui.h>
 #include "config/ActiveSettings.h"
+#include "config/CemuConfig.h"
+#include "util/SystemInfo/SystemInfo.h"
 
 #include "Cafe/CafeSystem.h"
 
@@ -115,6 +117,13 @@ void LatteThread_HandleOSScreen()
 int Latte_ThreadEntry()
 {
 	SetThreadName("LatteThread");
+#if BOOST_PLAT_ANDROID
+	if (GetConfig().prefer_big_cores)
+	{
+		uint32 fastCoreCount = RunCurrentThreadOnFastCores();
+		cemuLog_log(LogType::Force, "Emulation threads are kept on {} fast CPU cores (0: unchanged)", fastCoreCount);
+	}
+#endif
 	sint32 w,h;
 	WindowSystem::GetWindowPhysSize(w,h);
 
