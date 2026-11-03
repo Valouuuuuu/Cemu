@@ -26,6 +26,19 @@ private val EXTRA_PRESETS = listOf(
         rules = "[Preset]\nname = 45 FPS\ncategory = FPS Limit\n\$targetFPS:int = 45\n\n",
         before = Regex("""\[Preset\]\s+name\s*=\s*40 FPS"""),
     ),
+    // It has 20 and 30 FPS, and its vsync frequency follows its target
+    ExtraPreset(
+        pack = "Skylanders Trap Team/Mods/FPS",
+        name = "25 FPS",
+        rules = "[Preset]\nname = 25 FPS\ncategory = FPS Limit\n\$targetFPS:int = 25\n\n",
+        before = Regex("""\[Preset\]\s+name\s*=\s*20 FPS"""),
+    ),
+    ExtraPreset(
+        pack = "Skylanders Trap Team/Mods/FPS",
+        name = "24 FPS",
+        rules = "[Preset]\nname = 24 FPS\ncategory = FPS Limit\n\$targetFPS:int = 24\n\n",
+        before = Regex("""\[Preset\]\s+name\s*=\s*20 FPS"""),
+    ),
     // It has 50% and 100%, and this value only multiplies the size of the shadows' texture
     ExtraPreset(
         pack = "Skylanders Trap Team/Graphics",
