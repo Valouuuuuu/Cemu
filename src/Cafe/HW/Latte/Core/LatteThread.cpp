@@ -17,6 +17,7 @@
 #include <imgui.h>
 #include "config/ActiveSettings.h"
 #include "config/CemuConfig.h"
+#include "Cafe/HW/Latte/Core/LatteCostProbe.h"
 #include "util/SystemInfo/SystemInfo.h"
 
 #include "Cafe/CafeSystem.h"
@@ -124,6 +125,7 @@ int Latte_ThreadEntry()
 		cemuLog_log(LogType::Force, "Emulation threads are kept on {} fast CPU cores (0: unchanged)", fastCoreCount);
 	}
 #endif
+	LatteCostProbe_SetEffects(GetConfig().effect_modes.GetValue());
 	sint32 w,h;
 	WindowSystem::GetWindowPhysSize(w,h);
 

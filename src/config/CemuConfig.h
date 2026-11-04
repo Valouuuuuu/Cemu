@@ -421,6 +421,7 @@ struct CemuConfig
 	ConfigValue<bool> play_boot_sound{false};
 	ConfigValue<sint32> thread_quantum_percent{100};
 	ConfigValue<bool> prefer_big_cores{false};
+	ConfigValue<std::string> effect_modes{}; // the effects that are hidden or drawn every other frame, see LatteCostProbe
 
 #if BOOST_PLAT_ANDROID
 	ConfigValue<std::string> custom_driver_path{};

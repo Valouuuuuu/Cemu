@@ -5,12 +5,14 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <map>
 #include <mutex>
 #include <numeric>
 #include <optional>
+#include <sstream>
 
-std::atomic_bool g_latteCostProbeRunning = false;
+std::atomic_bool g_latteCostProbeActive = false;
 
 namespace
 {
@@ -23,6 +25,10 @@ namespace
 	constexpr size_t kMostVertices = 12;
 	constexpr size_t kReferenceEvery = 4;
 	constexpr size_t kReportLines = 14;
+	constexpr size_t kResultLines = 24;
+
+	constexpr uint8 kEffectHalfRate = 1;
+	constexpr uint8 kEffectHidden = 2;
 
 	using ShaderKey = std::pair<uint64, uint64>;
 
@@ -53,9 +59,16 @@ namespace
 	};
 
 	std::atomic_bool s_requested = false;
+	std::atomic_bool s_analysisRunning = false;
 	std::mutex s_reportMutex;
 	std::string s_report = "Pas encore d'analyse.";
+	std::string s_results;
 
+	std::mutex s_effectsMutex;
+	std::map<ShaderKey, uint8> s_effects;
+	std::atomic_bool s_hasEffects = false;
+
+	uint32 s_frameCount = 0;
 	Phase s_phase = Phase::IDLE;
 	uint32 s_phaseFrame = 0;
 	std::chrono::steady_clock::time_point s_lastFrame;
@@ -80,10 +93,36 @@ namespace
 		return fmt::format("{:016x}_{:016x}", key.first, key.second);
 	}
 
+	std::optional<ShaderKey> ParseKey(const std::string& text)
+	{
+		const size_t separator = text.find('_');
+		if (separator == std::string::npos)
+			return std::nullopt;
+		try
+		{
+			return ShaderKey{std::stoull(text.substr(0, separator), nullptr, 16), std::stoull(text.substr(separator + 1), nullptr, 16)};
+		}
+		catch (const std::exception&)
+		{
+			return std::nullopt;
+		}
+	}
+
+	void UpdateActive()
+	{
+		g_latteCostProbeActive = s_analysisRunning || s_hasEffects;
+	}
+
 	void SetReport(std::string text)
 	{
 		std::lock_guard lock(s_reportMutex);
 		s_report = std::move(text);
+	}
+
+	void SetResults(std::string list)
+	{
+		std::lock_guard lock(s_reportMutex);
+		s_results = std::move(list);
 	}
 
 	void StartRun()
@@ -94,16 +133,23 @@ namespace
 		s_stats.clear();
 		s_steps.clear();
 		s_hidden.reset();
-		g_latteCostProbeRunning = true;
+		s_analysisRunning = true;
+		UpdateActive();
 		SetReport("Analyse en cours : elle commence dans quelques secondes. Reste dans le jeu.");
 		LatteOverlay_pushNotification("Analyse des FPS dans quelques secondes : reste dans le jeu, sans bouger. L'image va clignoter pendant environ 3 minutes.", 8000);
 	}
 
-	void Finish()
+	void EndRun()
 	{
 		s_hidden.reset();
 		s_phase = Phase::IDLE;
-		g_latteCostProbeRunning = false;
+		s_analysisRunning = false;
+		UpdateActive();
+	}
+
+	void Finish()
+	{
+		EndRun();
 
 		std::vector<double> references;
 		for (const Step& step : s_steps)
@@ -163,14 +209,20 @@ namespace
 		std::string report = fmt::format("Image normale : {:.1f} ms ({:.1f} images/s), entre {:.1f} et {:.1f} ms. {} effets testés.\n",
 			referenceMs, 1000.0 / referenceMs, *shortest, *longest, results.size());
 		report += "Effet caché : temps gagné par image (images/s obtenues) :\n";
-		for (size_t i = 0; i < results.size() && i < kReportLines; i++)
+		std::string list = fmt::format("{:.1f}\t{:.1f}\n", referenceMs, 1000.0 / referenceMs);
+		for (size_t i = 0; i < results.size() && i < std::max(kReportLines, kResultLines); i++)
 		{
 			const Result& result = results[i];
 			const double hiddenMs = referenceMs - result.gainMs;
-			report += fmt::format("{:2}. {:+.1f} ms ({:.0f} images/s)  {}  {:.1f} dessins/image\n",
-				i + 1, -result.gainMs, hiddenMs > 1.0 ? 1000.0 / hiddenMs : 0.0, Describe(result.key), (double)result.stats.draws / kCollectFrames);
+			const double hiddenFps = hiddenMs > 1.0 ? 1000.0 / hiddenMs : 0.0;
+			const double drawsPerFrame = (double)result.stats.draws / kCollectFrames;
+			if (i < kReportLines)
+				report += fmt::format("{:2}. {:+.1f} ms ({:.0f} images/s)  {}  {:.1f} dessins/image\n", i + 1, -result.gainMs, hiddenFps, Describe(result.key), drawsPerFrame);
+			if (i < kResultLines)
+				list += fmt::format("{:016x}_{:016x}\t{:.1f}\t{:.0f}\t{:.1f}\n", result.key.first, result.key.second, result.gainMs, hiddenFps, drawsPerFrame);
 		}
 		SetReport(report);
+		SetResults(list);
 		cemuLog_log(LogType::Force, "Cost analysis:\n{}", report);
 		LatteOverlay_pushNotification("Analyse terminée : ouvre le portail (Select + R1), puis Analyse, pour voir le résultat.", 10000);
 	}
@@ -203,8 +255,7 @@ namespace
 		}
 		if (candidates.empty())
 		{
-			s_phase = Phase::IDLE;
-			g_latteCostProbeRunning = false;
+			EndRun();
 			SetReport("L'analyse n'a vu aucun dessin : la scène était-elle affichée ?");
 			return;
 		}
@@ -252,7 +303,7 @@ namespace
 void LatteCostProbe_Request()
 {
 	// a run that is already going on is not restarted when it ends
-	if (!LatteCostProbe_IsRunning())
+	if (!s_analysisRunning)
 		s_requested = true;
 }
 
@@ -260,6 +311,35 @@ std::string LatteCostProbe_GetReport()
 {
 	std::lock_guard lock(s_reportMutex);
 	return s_report;
+}
+
+std::string LatteCostProbe_GetResults()
+{
+	std::lock_guard lock(s_reportMutex);
+	return s_results;
+}
+
+void LatteCostProbe_SetEffects(const std::string& effects)
+{
+	std::map<ShaderKey, uint8> parsed;
+	std::istringstream stream(effects);
+	std::string item;
+	while (std::getline(stream, item, ','))
+	{
+		const size_t colon = item.find(':');
+		if (colon == std::string::npos)
+			continue;
+		const std::optional<ShaderKey> key = ParseKey(item.substr(0, colon));
+		const int mode = std::atoi(item.c_str() + colon + 1);
+		if (key && (mode == kEffectHalfRate || mode == kEffectHidden))
+			parsed[*key] = static_cast<uint8>(mode);
+	}
+	{
+		std::lock_guard lock(s_effectsMutex);
+		s_effects = std::move(parsed);
+		s_hasEffects = !s_effects.empty();
+	}
+	UpdateActive();
 }
 
 void LatteCostProbe_CountDraw(const LatteDecompilerShader* pixelShader, uint32 vertexCount)
@@ -273,11 +353,21 @@ void LatteCostProbe_CountDraw(const LatteDecompilerShader* pixelShader, uint32 v
 
 bool LatteCostProbe_ShouldHide(const LatteDecompilerShader* pixelShader)
 {
-	return s_hidden.has_value() && *s_hidden == KeyOf(pixelShader);
+	const ShaderKey key = KeyOf(pixelShader);
+	if (s_hidden.has_value() && *s_hidden == key)
+		return true;
+	if (!s_hasEffects)
+		return false;
+	std::lock_guard lock(s_effectsMutex);
+	const auto effect = s_effects.find(key);
+	if (effect == s_effects.end())
+		return false;
+	return effect->second == kEffectHidden || (effect->second == kEffectHalfRate && (s_frameCount & 1) != 0);
 }
 
 void LatteCostProbe_OnFrameEnd()
 {
+	s_frameCount++;
 	if (s_phase == Phase::IDLE)
 	{
 		if (s_requested.exchange(false))

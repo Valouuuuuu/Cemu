@@ -53,6 +53,17 @@ object NativeEmulation {
     @JvmStatic
     external fun getCostAnalysis(): String
 
+    /** The effects found by that analysis: the frame time on the first line, then one line per effect, split by tabs. */
+    @JvmStatic
+    external fun getCostResults(): String
+
+    /** The effects that are drawn every other frame (1) or hidden (2), as `name:mode` split by commas. */
+    @JvmStatic
+    external fun getEffectModes(): String
+
+    @JvmStatic
+    external fun setEffectModes(modes: String)
+
     @JvmStatic
     external fun initializeSystems()
 

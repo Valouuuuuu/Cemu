@@ -95,6 +95,8 @@ class SkyportalBridgeProvider : ContentProvider() {
             "setSetting" -> setSetting(arg!!, extras!!.getInt("value"))
             "startAnalysis" -> startAnalysis()
             "getAnalysis" -> getAnalysis()
+            "getEffects" -> getEffects()
+            "setEffects" -> setEffects(arg!!)
             "getMappings" -> getMappings(context)
             "setMapping" -> setMapping(context, arg!!.toInt(), extras!!.getString("value")!!.toInt())
             "resetMappings" -> resetMappings(context)
@@ -245,6 +247,17 @@ class SkyportalBridgeProvider : ContentProvider() {
     }
 
     private fun getAnalysis() = result(true).apply { putString("text", NativeEmulation.getCostAnalysis()) }
+
+    private fun getEffects() = result(true).apply {
+        putString("results", NativeEmulation.getCostResults())
+        putString("modes", NativeEmulation.getEffectModes())
+    }
+
+    private fun setEffects(modes: String): Bundle {
+        NativeEmulation.setEffectModes(modes)
+        NativeSettings.saveSettings()
+        return result(true)
+    }
 
     private fun setSetting(id: String, value: Int): Bundle {
         val setting = SETTINGS[id] ?: return result(false, "Unknown setting $id")

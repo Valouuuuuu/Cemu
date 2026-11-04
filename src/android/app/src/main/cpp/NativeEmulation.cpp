@@ -414,3 +414,23 @@ Java_info_cemu_cemu_nativeinterface_NativeEmulation_getCostAnalysis(JNIEnv* env,
 {
 	return env->NewStringUTF(LatteCostProbe_GetReport().c_str());
 }
+
+extern "C" [[maybe_unused]] JNIEXPORT jstring JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulation_getCostResults(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return JNIUtils::ToJString(env, LatteCostProbe_GetResults());
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT jstring JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulation_getEffectModes(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return JNIUtils::ToJString(env, GetConfig().effect_modes.GetValue());
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
+Java_info_cemu_cemu_nativeinterface_NativeEmulation_setEffectModes(JNIEnv* env, [[maybe_unused]] jclass clazz, jstring modes)
+{
+	const std::string value = JNIUtils::FromJString(env, modes);
+	GetConfig().effect_modes = value;
+	LatteCostProbe_SetEffects(value);
+}
